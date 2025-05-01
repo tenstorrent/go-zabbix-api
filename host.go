@@ -55,6 +55,7 @@ type Host struct {
 
 	// Fields below used only when creating hosts
 	GroupIds         HostGroupIDs   `json:"groups,omitempty"`
+	HostGroups       HostGroupIDs   `json:"hostgroups,omitempty"`
 	Interfaces       HostInterfaces `json:"interfaces,omitempty"`
 	TemplateIDs      TemplateIDs    `json:"templates,omitempty"`
 	TemplateIDsClear TemplateIDs    `json:"templates_clear,omitempty"`
@@ -221,6 +222,19 @@ func (api *API) HostsCreate(hosts Hosts) (err error) {
 // HostsUpdate Wrapper for host.update
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/host/update
 func (api *API) HostsUpdate(hosts Hosts) (err error) {
+	// Ensure groups are in the correct field for host.update API method
+	// host.update expects the parameter "groups", which maps to the GroupIds field.
+	for i := range hosts {
+		// If HostGroups has data (likely from Zabbix >= 7.0 logic) and GroupIds is empty,
+		// copy the data to GroupIds for the update call.
+		if hosts[i].HostGroups != nil && hosts[i].GroupIds == nil {
+			hosts[i].GroupIds = hosts[i].HostGroups
+			api.printf("Copying HostGroups to GroupIds for host.update compatibility for host %s", hosts[i].HostID)
+		}
+		// Clear HostGroups to avoid sending potentially conflicting/ignored data
+		hosts[i].HostGroups = nil
+	}
+
 	prepHosts(hosts)
 	_, err = api.CallWithError("host.update", hosts)
 	return

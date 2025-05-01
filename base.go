@@ -251,14 +251,37 @@ func (api *API) CallWithErrorParse(method string, params interface{}, result int
 	if err != nil {
 		return
 	}
+
+	// Log the raw response BEFORE unmarshalling
+	// api.printf("Raw JSON Response for %s: %s", method, string(response))
+
+	// --- DEBUG PANIC in API Lib ---
+	// Force a panic to inspect the raw API response when logging fails.
+	// Trigger ONLY for host.get method.
+	// REMOVE THIS AFTER DEBUGGING.
+	// if method == "host.get" {
+	// 	panic(fmt.Sprintf("DEBUG PANIC in go-zabbix-api base.go (method: %s):\nRaw Response Bytes: %s", method, string(response)))
+	// }
+	// --- END DEBUG PANIC ---
+
 	err = json.Unmarshal(response, &rawResult)
 	if err != nil {
 		return
 	}
+
 	if rawResult.Error != nil {
-		return rawResult.Error
+		err = rawResult.Error
+		return
 	}
-	err = json.Unmarshal(rawResult.Result, &result)
+
+	if result != nil {
+		err = json.Unmarshal(rawResult.Result, result)
+		if err != nil {
+			api.printf("Error unmarshalling result for %s: %s\nRaw Result: %s", method, err, string(rawResult.Result))
+			return
+		}
+	}
+
 	return
 }
 
