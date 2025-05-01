@@ -152,12 +152,15 @@ func NewAPI(c Config) (api *API, err error) {
 	if err != nil {
 		return
 	}
+	api.printf("Raw Zabbix version: %s", rawVersion)
+
 	var version int64
 	version, err = parseVersionString(rawVersion)
 	if err != nil {
 		return
 	}
 	api.Config.Version = int(version)
+	api.printf("Parsed Zabbix version: %d", api.Config.Version)
 
 	return
 }
@@ -175,7 +178,15 @@ func (api *API) printf(format string, v ...interface{}) {
 
 func (api *API) callBytes(method string, params interface{}) (b []byte, err error) {
 	id := atomic.AddInt32(&api.id, 1)
-	jsonobj := request{"2.0", method, params, api.Auth, id}
+
+	// For Zabbix 7.2+, don't include auth in the JSON-RPC request
+	var jsonobj request
+	if api.Config.Version >= 70200 {
+		jsonobj = request{"2.0", method, params, "", id}
+	} else {
+		jsonobj = request{"2.0", method, params, api.Auth, id}
+	}
+
 	b, err = json.Marshal(jsonobj)
 	if err != nil {
 		return
@@ -189,6 +200,11 @@ func (api *API) callBytes(method string, params interface{}) (b []byte, err erro
 	req.ContentLength = int64(len(b))
 	req.Header.Add("Content-Type", "application/json-rpc")
 	req.Header.Add("User-Agent", api.UserAgent)
+
+	// For Zabbix 7.2+, add API key in Authorization header
+	if api.Config.Version >= 70200 && api.Auth != "" {
+		req.Header.Add("Authorization", "Bearer "+api.Auth)
+	}
 
 	if api.Config.Serialize {
 		api.ex.Lock()
@@ -250,11 +266,26 @@ func (api *API) CallWithErrorParse(method string, params interface{}, result int
 // This method modifies API structure and should not be called concurrently with other methods.
 func (api *API) Login(user, password string) (auth string, err error) {
 	var response Response
-	if api.Config.Version >= 50400 {
-		response, err = api.CallWithError("user.login", map[string]string{"username": user, "password": password})
-	} else {
-		response, err = api.CallWithError("user.login", map[string]string{"user": user, "password": password})
+
+	// For Zabbix 7.2+, we should not be using username/password login
+	// Instead, use the SetAPIKey method
+	if api.Config.Version >= 70200 {
+		return "", fmt.Errorf("username/password authentication is not supported in Zabbix 7.2+. Use API key authentication instead")
 	}
+
+	// For older versions, use the legacy method
+	if api.Config.Version >= 50400 {
+		response, err = api.CallWithError("user.login", map[string]string{
+			"username": user,
+			"password": password,
+		})
+	} else {
+		response, err = api.CallWithError("user.login", map[string]string{
+			"user":     user,
+			"password": password,
+		})
+	}
+
 	if err != nil {
 		return
 	}
@@ -262,6 +293,12 @@ func (api *API) Login(user, password string) (auth string, err error) {
 	auth = response.Result.(string)
 	api.Auth = auth
 	return
+}
+
+// SetAPIKey sets the API key for authentication in Zabbix 7.2+
+func (api *API) SetAPIKey(key string) {
+	api.printf("Setting API key for Zabbix 7.2+")
+	api.Auth = key
 }
 
 // Version Calls "APIInfo.version" API method.
