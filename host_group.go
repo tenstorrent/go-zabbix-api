@@ -24,12 +24,17 @@ type HostGroup struct {
 // HostGroups is an array of HostGroup
 type HostGroups []HostGroup
 
-// HostGroupID represent Zabbix GroupID
+// HostGroupID represents a Zabbix host group identifier and its associated metadata.
+// The structure supports both Zabbix 6.0 and 7.2 API responses, with additional fields
+// in 7.2 being optional (name, internal, flags).
 type HostGroupID struct {
-	GroupID string `json:"groupid"`
+	GroupID  string `json:"groupid"`            // Unique identifier of the host group
+	Name     string `json:"name,omitempty"`     // Display name of the host group (Zabbix 7.2+)
+	Internal string `json:"internal,omitempty"` // Whether the group is internal (Zabbix 7.2+)
+	Flags    string `json:"flags,omitempty"`    // Additional flags for the group (Zabbix 7.2+)
 }
 
-// HostGroupIDs is an array of HostGroupId
+// HostGroupIDs is a collection of HostGroupID objects
 type HostGroupIDs []HostGroupID
 
 // HostGroupsGet Wrapper for hostgroup.get
