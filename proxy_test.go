@@ -11,9 +11,9 @@ import (
 func CreateProxy(t *testing.T) *zapi.Proxy {
 	name := fmt.Sprintf("%s-%d", "test-proxy", rand.Int())
 	proxy := zapi.Proxy{
-		Host:        name,
-		Status:      5, // Active proxy
-		Description: "Test proxy created by go-zabbix-api tests",
+		Host:          name,
+		OperatingMode: "0", // Active proxy
+		Description:   "Test proxy created by go-zabbix-api tests",
 	}
 
 	proxies := zapi.Proxies{proxy}

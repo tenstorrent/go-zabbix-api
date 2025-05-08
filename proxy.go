@@ -13,7 +13,7 @@ import (
 type Proxy struct {
 	ProxyID              string `json:"proxyid,omitempty"`
 	Host                 string `json:"host"`
-	Status               string `json:"status,omitempty"`
+	OperatingMode        string `json:"status,omitempty"` // Operating mode: 0 = active, 1 = passive
 	Description          string `json:"description,omitempty"`
 	LastAccess           string `json:"lastaccess,omitempty"`
 	TLSConnect           string `json:"tls_connect,omitempty"`
@@ -37,9 +37,8 @@ type Proxy struct {
 	Compatibility        string `json:"compatibility,omitempty"`
 	State                string `json:"state,omitempty"`
 	ProxyGroupID         string `json:"proxy_groupid,omitempty"`
-	LocalAddress         string `json:"local_address,omitempty"`
-	LocalPort            string `json:"local_port,omitempty"`
-	OperatingMode        string `json:"operating_mode,omitempty"`
+	LocalAddress         string `json:"local_address,omitempty"` // IP address or hostname for active proxy
+	LocalPort            string `json:"local_port,omitempty"`    // Port for active proxy
 	AllowedAddresses     string `json:"allowed_addresses,omitempty"`
 	Address              string `json:"address,omitempty"`
 	Port                 string `json:"port,omitempty"`
