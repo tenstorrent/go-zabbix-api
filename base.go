@@ -130,7 +130,7 @@ func NewAPI(c Config) (api *API, err error) {
 	api = &API{
 		url:       c.Url,
 		c:         http.Client{},
-		UserAgent: "github.com/ppodevlabs/go-zabbix-api",
+		UserAgent: "github.com/tenstorrent/go-zabbix-api",
 		Logger:    c.Log,
 		Config:    c,
 	}
