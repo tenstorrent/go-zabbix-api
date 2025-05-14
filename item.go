@@ -10,16 +10,12 @@ type (
 	ItemType int
 	// ValueType type of information of the item
 	ValueType int
-	// DataType data type of the item
-	DataType int
-	// DeltaType value that will be stored
-	DeltaType int
 )
 
 const (
 	// Different item type, see :
-	// - "type" in https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
-	// - https://www.zabbix.com/documentation/3.2/manual/config/items/itemtypes
+	// - "type" in https://www.zabbix.com/documentation/current/en/manual/api/reference/item/object
+	// - https://www.zabbix.com/documentation/current/en/manual/config/items/itemtypes
 
 	// ZabbixAgent type
 	ZabbixAgent ItemType = 0
@@ -63,7 +59,7 @@ const (
 
 const (
 	// Type of information of the item
-	// see "value_type" in https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
+	// see "value_type" in https://www.zabbix.com/documentation/current/en/manual/api/reference/item/object
 
 	// Float value
 	Float ValueType = 0
@@ -75,49 +71,23 @@ const (
 	Unsigned ValueType = 3
 	// Text value
 	Text ValueType = 4
-)
-
-const (
-	// Data type of the item
-	// see "data_type" in https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
-
-	// Decimal data (default)
-	Decimal DataType = 0
-	// Octal data
-	Octal DataType = 1
-	// Hexadecimal data
-	Hexadecimal DataType = 2
-	// Boolean data
-	Boolean DataType = 3
-)
-
-const (
-	// Value that will be stored
-	// see "delta" in https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
-
-	// AsIs as is (default)
-	AsIs DeltaType = 0
-	// Speed speed per second
-	Speed DeltaType = 1
-	// Delta simple change
-	Delta DeltaType = 2
+	// Binary value
+	Binary ValueType = 5
 )
 
 type HttpHeaders map[string]string
 
 // Item represent Zabbix item object
-// https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
+// https://www.zabbix.com/documentation/current/en/manual/api/reference/item/object
 type Item struct {
 	ItemID       string    `json:"itemid,omitempty"`
 	Delay        string    `json:"delay"`
-	HostID       string    `json:"hostid"`
+	HostID       string    `json:"hostid,omitempty"`
 	InterfaceID  string    `json:"interfaceid,omitempty"`
 	Key          string    `json:"key_"`
 	Name         string    `json:"name"`
 	Type         ItemType  `json:"type,string"`
 	ValueType    ValueType `json:"value_type,string"`
-	DataType     DataType  `json:"data_type,string"`
-	Delta        DeltaType `json:"delta,string"`
 	Description  string    `json:"description"`
 	Error        string    `json:"error,omitempty"`
 	History      string    `json:"history,omitempty"`
@@ -128,8 +98,6 @@ type Item struct {
 	// list of strings on set, but list of objects on get
 	RawApplications json.RawMessage `json:"applications,omitempty"`
 	Applications    []string        `json:"-"`
-
-	ItemParent Hosts `json:"hosts"`
 
 	Preprocessors Preprocessors `json:"preprocessing,omitempty"`
 
@@ -166,8 +134,7 @@ type Item struct {
 	MasterItemID string `json:"master_itemid,omitempty"`
 
 	// Prototype
-	RuleID        string   `json:"ruleid,omitempty"`
-	DiscoveryRule *LLDRule `json:"discoveryRule,omitEmpty"`
+	RuleID string `json:"ruleid,omitempty"`
 
 	Tags Tags `json:"tags,omitempty"`
 }
@@ -198,7 +165,7 @@ func (items Items) ByKey() (res map[string]Item) {
 }
 
 // ItemsGet Wrapper for item.get
-// https://www.zabbix.com/documentation/3.2/manual/api/reference/item/get
+// https://www.zabbix.com/documentation/current/en/manual/api/reference/item/get
 func (api *API) ItemsGet(params Params) (res Items, err error) {
 	if _, present := params["output"]; !present {
 		params["output"] = "extend"
@@ -314,7 +281,7 @@ func (api *API) ProtoItemsGetByApplicationID(id string) (res Items, err error) {
 }
 
 // ItemsCreate Wrapper for item.create
-// https://www.zabbix.com/documentation/3.2/manual/api/reference/item/create
+// https://www.zabbix.com/documentation/current/en/manual/api/reference/item/create
 func (api *API) ItemsCreate(items Items) (err error) {
 	prepItems(items)
 	response, err := api.CallWithError("item.create", items)
@@ -345,13 +312,25 @@ func (api *API) ProtoItemsCreate(items Items) (err error) {
 }
 
 // ItemsUpdate Wrapper for item.update
-// https://www.zabbix.com/documentation/3.2/manual/api/reference/item/update
+// https://www.zabbix.com/documentation/current/en/manual/api/reference/item/update
 func (api *API) ItemsUpdate(items Items) (err error) {
+	// For updates, we need to clear the HostID field to avoid API errors
+	for i := range items {
+		// Clear HostID for updates since it's not allowed
+		items[i].HostID = ""
+	}
+
 	prepItems(items)
 	_, err = api.CallWithError("item.update", items)
 	return
 }
 func (api *API) ProtoItemsUpdate(items Items) (err error) {
+	// For updates, we need to clear the HostID field to avoid API errors
+	for i := range items {
+		// Clear HostID for updates since it's not allowed
+		items[i].HostID = ""
+	}
+
 	prepItems(items)
 	_, err = api.CallWithError("itemprototype.update", items)
 	return
@@ -359,7 +338,7 @@ func (api *API) ProtoItemsUpdate(items Items) (err error) {
 
 // ItemsDelete Wrapper for item.delete
 // Cleans ItemId in all items elements if call succeed.
-// https://www.zabbix.com/documentation/3.2/manual/api/reference/item/delete
+// https://www.zabbix.com/documentation/current/en/manual/api/reference/item/delete
 func (api *API) ItemsDelete(items Items) (err error) {
 	ids := make([]string, len(items))
 	for i, item := range items {
@@ -390,7 +369,7 @@ func (api *API) ProtoItemsDelete(items Items) (err error) {
 }
 
 // ItemsDeleteByIds Wrapper for item.delete
-// https://www.zabbix.com/documentation/3.2/manual/api/reference/item/delete
+// https://www.zabbix.com/documentation/current/en/manual/api/reference/item/delete
 func (api *API) ItemsDeleteByIds(ids []string) (err error) {
 	deleteIds, err := api.ItemsDeleteIDs(ids)
 	if err != nil {
