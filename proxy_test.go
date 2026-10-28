@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"testing"
 
-	zapi "github.com/tpretz/go-zabbix-api"
+	zapi "github.com/tenstorrent/go-zabbix-api"
 )
 
 func CreateProxy(t *testing.T) *zapi.Proxy {
